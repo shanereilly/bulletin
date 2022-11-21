@@ -4,6 +4,7 @@ from typing import Tuple
 
 # Constants
 DEBUG = True
+ERROR = 0
 POST = 1
 USERS = 2
 LEAVE = 3
@@ -37,15 +38,18 @@ class Client:
         str: body = ""
 
         first = selection[0]
-
+        if (first == ERROR):
+            print("Error")
+            # Handle error
         # Post
-        if (first == POST):
+        elif (first == POST):
             reqAct = POST
             # Zero is the default group ID. Any other group must be specified with the %grouppost command
             groupID = 0
             subject = selection[1]
 
             print("Please enter your message body:")
+            body = ""
             bodyLine = ""
             while (bodyLine != "\n" or bodyLine != "\r"):
                 body += (bodyLine + "\n")
@@ -103,7 +107,7 @@ class Client:
 def mainMenu(client):
     while True:
         selection = input("Enter one of the following commands:\n\t%exit\n\t%post [message subject]\n\t%users\n\t%leave\n\t%message [message ID]\n\t%groups\n\t%groupjoin [groupID]\n\t%grouppost [groupID] [message subject]\n\t%groupusers [groupID]\n\t%groupleave [groupID]\n\t%groupmessage [groupID] [messageID]\n")
-        selection = parseSelection
+        selection = parseSelection(selection)
 
         if DEBUG:
             print(selection)
@@ -115,7 +119,7 @@ def mainMenu(client):
 
 def parseSelection(selection: str) -> Tuple[int, str, str]:
     main_menu_commands = ["%exit", "%post", "%users", "%leave", "%message", "%groups", "%groupjoin", "%grouppost", "%groupusers", "%groupleave", "%groupmessage"]
-    error = (0,"","")
+    error = (ERROR,"","")
     command = selection.split()
     first = command[0]
     if first not in main_menu_commands:

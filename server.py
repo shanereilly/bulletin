@@ -19,14 +19,20 @@ DEFAULT_ADDRESS = "127.0.0.1"
 DEFAULT_PORT = 13001
 
 class Group:
-    def __init__(self, groupID: int)
-    self.id = groupID
-    self.users = []
+    def __init__(self, groupID : int):
+        self.id = groupID
+        self.users = []
+        self.posts = {}
 
     def removeUser(self, username):
         self.users.remove(username)
     def addUser(self, username):
         self.users += [username]
+
+class Post:
+    def __init__(self, messageHeader :str, messageBody : str):
+        str: self.messageHeader = messageHeader
+        str: self.messageBody = messageBody
 
 class Request:
     def __init__(self, username: str, groupID: str, msgID: str, act: str, subject: str, body: str, timestamp):
@@ -42,6 +48,8 @@ class BulletinBoard():
     def __init__(self):
         self.groups = [Group(0), Group(1), Group(2), Group(3), Group(4), Group(5)]
         self.users = []
+        self.postcount = 0
+
     def read_request(self, request: str):
         print("Parsing request")
         request = request.split("\n")
@@ -62,49 +70,66 @@ class BulletinBoard():
     def handle_request(self) -> str:
         print("Handling request...")
         request = self.currentRequest
-        responseBody = ""
+        response = ""
         requestType = int(self.requestType)
 
         # Handle Error
         if (requestType == ERROR):
+            response = "Error"
 
         # Handle Post
-        if (requestType == POST):
+        elif (requestType == POST):
+            self.postcount += 1
+            group = self.groups[request.groupID]
+            group.posts[self.postcount] = Post(request.subject, request.body)
+            response = f"Post successful. Post ID: {self.postcount}."
 
         #Handle Users
-        elif (requestType == USERS):
+        elif (requestType == USERS or requestType == GROUPUSERS):
            response = "Current users:\n"
-           for user in self.users:
+           group = self.groups[request.groupID]
+           for user in group.users:
                response += user + "\n"
 
         # Handle Leave
-        elif (requestType == LEAVE):
+        elif (requestType == LEAVE or requestType == GROUPLEAVE):
             username = request.username
             groupID = int(request.groupID)
             self.groups[groupID].removeUser
             response = f"User {username} removed from group {groupID}"
 
         # Handle Message
-        elif (requestType == MESSAGE):
+        elif (requestType == MESSAGE or requestType == GROUPMESSAGE):
+            group = self.groups[request.groupID]
+            if request.msgID in group.posts:
+                post = group.posts[request.msgID]
+                response = f"{post.postHeader}\n{post.postBody}"
+            else:
+                repsonse = "Error. No such post."
 
         # Handle Groups
         elif (requestType == GROUPS):
+            response = "Available groups:\n"
+            for group in self.groups:
+                response += "Group {group.groupID}\n"
 
         # Handle Groupjoin
         elif (requestType == GROUPJOIN):
+            group = self.groups[request.groupID]
+            if request.username not in group.users:
+                group.users += [request.username]
+                response = f"{request.username} added to group {request.groupID}."
+            else:
+                response = f"{request.username} already in group {request.groupID}."
 
         # Handle Grouppost
         elif (requestType == GROUPPOST):
-
-        # Handle Groupusers
-        elif (requestType == GROUPUSERS):
-
-        # Handle Groupleave
-        elif (requestType == GROUPLEAVE):
-
-        # Handle Groupmessage
-        elif (requestType == GROUPMESSAGE):
-
+            self.postcount += 1
+            group = self.groups[request.groupID]
+            group.posts[self.postcount] = Post(request.subject, request.body)
+            response = f"Post successfully added in group {request.groupID}. Post ID: {self.postcount}."
+        if (DEBUG):
+            print(response)
         return response
 
 class clientThread(threading.Thread):
