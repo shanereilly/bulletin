@@ -22,7 +22,7 @@ class Client:
         self.connection = connection
         self.username = username
 
-    def create_bulletin_req(self, groupID: int, msgID: int, reqAct: int, subject: str, body: str):
+    def createBulletinRequest(self, groupID: int, msgID: int, reqAct: int, subject: str, body: str):
         reqList = [self.username, str(groupID), str(msgID), str(reqAct), subject, body]
         req = "\n".join(reqList)
         return req
@@ -31,11 +31,11 @@ class Client:
     def makeRequest(self, selection: Tuple[int, str, str]):
         # Initial request variables
         # Zero is the default group ID. Any other group must be specified
-        int: groupID = 0
-        int: msgID = 0
-        int : reqAct = 0
-        str: subject = ""
-        str: body = ""
+        groupID = 0
+        msgID = 0
+        reqAct = 0
+        subject = ""
+        body = ""
 
         first = selection[0]
         if (first == ERROR):
@@ -48,12 +48,15 @@ class Client:
             groupID = 0
             subject = selection[1]
 
-            print("Please enter your message body:")
+            print("Please enter your message body. Enter 'q' alone when finished:")
             body = ""
             bodyLine = ""
-            while (bodyLine != "\n" or bodyLine != "\r"):
-                body += (bodyLine + "\n")
-                bodyLine = input()
+            while (1):
+                if (bodyLine == "q"):
+                    break
+                else:
+                    body += (bodyLine + "\n")
+                    bodyLine = input()
 
         # Users
         elif (first == USERS):
@@ -77,11 +80,15 @@ class Client:
             reqAct = GROUPPOST
             groupID = int(selection[1])
             subject = selection[1]
-            print("Please enter your message body:")
+            print("Please enter your message body. Enter 'q' alone when finished:")
+            body = ""
             bodyLine = ""
-            while (bodyLine != "\n" or bodyLine != "\r"):
-                body += (bodyLine + "\n")
-                bodyLine = input()
+            while (1):
+                if (bodyLine == "q"):
+                    break
+                else:
+                    body += (bodyLine + "\n")
+                    bodyLine = input()
         # Groupusers
         elif (first == GROUPUSERS):
             reqAct = GROUPUSERS
@@ -96,9 +103,20 @@ class Client:
             groupID = int(selection[1])
             msgID = int(selection[2])
 
-        request = self.create_bulletin_req(groupID, msgID, reqAct, subject, body)
+        if DEBUG:
+            print("Building request...")
+
+        request = self.createBulletinRequest(groupID, msgID, reqAct, subject, body)
         request = bytes(request, 'utf-8')
+
+        if DEBUG:
+            print("Request built:")
+            print(request)
+
         self.connection.send(request)
+
+        if DEBUG:
+            print("Request sent.")
 
     def handle_response(self, resp):
         respStr = resp.decode()

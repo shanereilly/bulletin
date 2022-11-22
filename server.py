@@ -20,22 +20,29 @@ DEFAULT_PORT = 13001
 
 class Group:
     def __init__(self, groupID : int):
-        self.id = groupID
+        self.groupID = groupID
         self.users = []
         self.posts = {}
+        self.postcount = 0
 
-    def removeUser(self, username):
+    def removeUser(self, username : str):
+        if DEBUG:
+            print(f"Removing user {username}")
         self.users.remove(username)
-    def addUser(self, username):
+
+    def addUser(self, username : str):
+        if DEBUG:
+            print(f"Adding user {username}")
         self.users += [username]
 
 class Post:
-    def __init__(self, messageHeader :str, messageBody : str):
-        str: self.messageHeader = messageHeader
-        str: self.messageBody = messageBody
+    def __init__(self, messageHeader : str, messageBody : str, timestamp):
+        self.messageHeader = messageHeader
+        self.messageBody = messageBody
+        self.timestamp = timestamp
 
 class Request:
-    def __init__(self, username: str, groupID: str, msgID: str, act: str, subject: str, body: str, timestamp):
+    def __init__(self, username: str, groupID: str, msgID: str, requestType: str, subject: str, body: str, timestamp):
         self.username = username
         self.groupID = groupID
         self.msgID = msgID
@@ -43,6 +50,8 @@ class Request:
         self.subject = subject
         self.body = body
         self.timestamp = timestamp
+        if DEBUG:
+            print("Request built.")
 
 class BulletinBoard():
     def __init__(self):
@@ -51,85 +60,149 @@ class BulletinBoard():
         self.postcount = 0
 
     def read_request(self, request: str):
-        print("Parsing request")
+
+        if DEBUG:
+            print("Parsing request")
+
         request = request.split("\n")
         username = request[0]
+
+        ## All users are automatically in group 0
+        if username not in self.groups[0].users:
+            self.groups[0].addUser(username)
+
         groupID = request[1]
         msgID = request[2]
-        reqAct = request[3]
+        requestType = request[3]
         subject = request[4]
         body = ""
-        timestamp = str(time.time)
-        print("Current request:\n", request)
-        print("Timestamp: ", timestamp)
+        timestamp = str(time.time())
         
         for i in range(5, len(request)):
             body += request[i] + '\n'
-        self.currentRequest = Request(username, groupID, msgID, reqAct, subject, body, timestamp)
 
-    def handle_request(self) -> str:
-        print("Handling request...")
+        if DEBUG:
+            print("Building request...")
+            print("======================")
+            print(f"Username: {username}")
+            print(f"Group ID: {groupID}")
+            print(f"Message ID: {msgID}")
+            print(f"Request type: {requestType}")
+            print(f"Subject: {subject}")
+            print(f"Body: {body}")
+            print(f"Timestamp: {timestamp}")
+            print("======================")
+
+        self.currentRequest = Request(username, groupID, msgID, requestType, subject, body, timestamp)
+
+        if DEBUG:
+            print("Current request:")
+            print("======================")
+            print(f"Username: {self.currentRequest.username}")
+            print(f"Group ID: {self.currentRequest.groupID}")
+            print(f"Message ID: {self.currentRequest.msgID}")
+            print(f"Request type: {self.currentRequest.requestType}")
+            print(f"Subject: {self.currentRequest.subject}")
+            print(f"Body: {self.currentRequest.body}")
+            print(f"Timestamp: {self.currentRequest.timestamp}")
+            print("======================")
+
+    def handleRequest(self) -> str:
+        if DEBUG:
+            print("Handling request...")
         request = self.currentRequest
         response = ""
-        requestType = int(self.requestType)
+        requestType = int(request.requestType)
+        if DEBUG:
+            print(f"Request type: {requestType}")
 
         # Handle Error
         if (requestType == ERROR):
+            if DEBUG:
+                print("ERROR request.")
             response = "Error"
 
         # Handle Post
-        elif (requestType == POST):
-            self.postcount += 1
-            group = self.groups[request.groupID]
-            group.posts[self.postcount] = Post(request.subject, request.body)
-            response = f"Post successful. Post ID: {self.postcount}."
+        elif (requestType == POST or requestType == GROUPPOST):
+            if (DEBUG and requestType == POST):
+                print("POST request.")
+            elif (DEBUG and requestType == GROUPPOST):
+                print("GROUPPOST request.")
+            group = self.groups[int(request.groupID)]
+            if request.username not in group.users:
+                response = f"Cannot post. {request.username} is not in group {request.groupID}"
+            else:
+                group.posts[group.postcount] = Post(request.subject, request.body, str(request.timestamp))
+                response = f"Post successful. Post ID: {group.postcount}."
+                group.postcount += 1
 
-        #Handle Users
+        # Handle Users
         elif (requestType == USERS or requestType == GROUPUSERS):
-           response = "Current users:\n"
-           group = self.groups[request.groupID]
-           for user in group.users:
-               response += user + "\n"
+            if (DEBUG and requestType == USERS):
+                print("USERS request.")
+            elif (DEBUG and requestType == GROUPUSERS):
+                print("GROUPUSERS request.")
+            response = "Current users:\n"
+            group = self.groups[int(request.groupID)]
+            if DEBUG:
+                print(f"Group: {group.groupID}")
+            for user in group.users:
+                response += user + "\n"
+            print(response)
 
         # Handle Leave
         elif (requestType == LEAVE or requestType == GROUPLEAVE):
+            if (DEBUG and requestType == LEAVE):
+                print("LEAVE request.")
+            elif (DEBUG and requestType == GROUPLEAVE):
+                print("GROUPLEAVE request.")
             username = request.username
             groupID = int(request.groupID)
-            self.groups[groupID].removeUser
+            (self.groups[groupID]).removeUser(username)
             response = f"User {username} removed from group {groupID}"
 
         # Handle Message
         elif (requestType == MESSAGE or requestType == GROUPMESSAGE):
-            group = self.groups[request.groupID]
-            if request.msgID in group.posts:
-                post = group.posts[request.msgID]
-                response = f"{post.postHeader}\n{post.postBody}"
+            if (DEBUG and requestType == MESSAGE):
+                print("MESSAGE request.")
+            elif (DEBUG and requestType == GROUPMESSAGE):
+                print("GROUPMESSAGE request.")
+            group = self.groups[int(request.groupID)]
+            if request.username not in group.users:
+                response = f"Cannot view post. {request.username} not in group {request.groupID}"
+            elif int(request.msgID) in group.posts.keys():
+                post = group.posts[int(request.msgID)]
+                if DEBUG:
+                    print("Post ID in dictionary")
+                    print(post)
+                response = f"Subject: {post.messageHeader}\nTimestamp: {post.timestamp}\n----------------\n{post.messageBody}"
             else:
                 repsonse = "Error. No such post."
 
         # Handle Groups
         elif (requestType == GROUPS):
+            if DEBUG:
+                print("GROUPS request.")
             response = "Available groups:\n"
             for group in self.groups:
-                response += "Group {group.groupID}\n"
+                response += f"Group {group.groupID}\n"
 
         # Handle Groupjoin
         elif (requestType == GROUPJOIN):
-            group = self.groups[request.groupID]
+            if DEBUG:
+                print("GROUPJOIN request.")
+            group = self.groups[int(request.groupID)]
             if request.username not in group.users:
-                group.users += [request.username]
+                if DEBUG:
+                    print("User not in group...")
+                group.addUser(request.username)
                 response = f"{request.username} added to group {request.groupID}."
             else:
                 response = f"{request.username} already in group {request.groupID}."
 
-        # Handle Grouppost
-        elif (requestType == GROUPPOST):
-            self.postcount += 1
-            group = self.groups[request.groupID]
-            group.posts[self.postcount] = Post(request.subject, request.body)
-            response = f"Post successfully added in group {request.groupID}. Post ID: {self.postcount}."
         if (DEBUG):
             print(response)
+
         return response
 
 class clientThread(threading.Thread):
@@ -138,7 +211,8 @@ class clientThread(threading.Thread):
         self.ip = ip
         self.port = port
         self.conn = conn
-        print("New client thread created!")
+        if DEBUG:
+            print("Client thread created.")
 
     def run(self):
         size = 4096
@@ -150,9 +224,9 @@ class clientThread(threading.Thread):
                     dataStr = data.decode()
                     print("Data received (as str):", dataStr)
                     print("Reading data...")
-                    s.bboard.read_req(dataStr) 
+                    s.bboard.read_request(dataStr) 
                     print("Data read.")
-                    response = s.bboard.handle_request()
+                    response = s.bboard.handleRequest()
                     response = bytes(response, 'utf-8')
                     self.conn.send(response)
                     print("Response sent.")
