@@ -20,6 +20,12 @@ DEFAULT_ADDRESS = "127.0.0.1"
 DEFAULT_PORT = 13001
 
 list_of_clients = []
+group_0 = []
+group_1 = []
+group_2 = []
+group_3 = []
+group_4 = []
+group_5 = []
 
 class Group:
     def __init__(self, groupID : int):
@@ -69,6 +75,39 @@ def broadcast(message, connection):
                 print("failed to send message to : " + str(clients))
                 clients.close()
 
+# Attempt at broadcasting message
+def broadcast_specific(message, connection, group):
+    message = bytes(message, 'utf-8')
+    print("\nTRYING TO BROADCAST\n")
+    for clients in group:
+        if (clients!=connection):
+            try:
+                print("trying to send message to : " + str(clients))
+                clients.send(message)
+            except:
+                print("failed to send message to : " + str(clients))
+                clients.close()
+
+
+def addConn(groupID, connection):
+    print(f"groupID passed in = {groupID}")
+    if int(groupID) == 0:
+        group_0.append(connection)
+    elif int(groupID) == 1:
+        group_1.append(connection)
+    elif int(groupID) == 2:
+        group_2.append(connection)
+    elif int(groupID) == 3:
+        group_3.append(connection)
+    elif int(groupID) == 4:
+        group_4.append(connection)
+    elif int(groupID) == 5:
+        group_5.append(connection)
+
+
+def printGroup(group):
+    for connections in group:
+        print(str(connections))
 
 
 class BulletinBoard():
@@ -139,7 +178,7 @@ class BulletinBoard():
         if (requestType == FIRSTMESSAGE):
             if DEBUG:
                 print("First message. Identifying user...")
-            broadcast(f"{request.username} has joined the message board.", conn)
+            broadcast(f"{request.username} has joined the message board.\n", conn)
             response = ""
 
         # Handle Error
@@ -159,8 +198,10 @@ class BulletinBoard():
                 response = f"Cannot post. {request.username} is not in group {request.groupID}"
             else:
                 group.posts[group.postcount] = Post(request.subject, request.body, str(request.timestamp))
-                response = f"Post successful. Post ID: {group.postcount}."
+                response = f"Post successful. Post ID: {group.postcount}.\n"
+                broadcast(f"MSG ID: {group.postcount}, SENDER: {request.username}. POST DATE: {group.posts[group.postcount].timestamp}, SUBJECT: {group.posts[group.postcount].messageHeader}\n", conn)
                 group.postcount += 1
+                
 
         # Handle Users
         elif (requestType == USERS or requestType == GROUPUSERS):
@@ -187,7 +228,26 @@ class BulletinBoard():
             username = request.username
             groupID = int(request.groupID)
             (self.groups[groupID]).removeUser(username)
-            response = f"User {username} removed from group {groupID}"
+            response = f"User {username} removed from group {groupID}\n"
+            if (groupID == 0):
+                broadcast(f"User {username} left group {groupID}\n", conn)
+                group_0.remove(conn)
+            elif (groupID == 1):
+                broadcast_specific(f"User {username} left group {groupID}\n", conn, group_1)
+                group_1.remove(conn)
+            elif (groupID == 2):
+                broadcast_specific(f"User {username} left group {groupID}\n", conn, group_2)
+                group_2.remove(conn)
+            elif (groupID == 3):
+                broadcast_specific(f"User {username} left group {groupID}\n", conn, group_3)
+                group_3.remove(conn)
+            elif (groupID == 4):
+                broadcast_specific(f"User {username} left group {groupID}\n", conn, group_4)
+                group_4.remove(conn)
+            elif (groupID == 5):
+                broadcast_specific(f"User {username} left group {groupID}\n", conn, group_5)
+                group_5.remove(conn)
+
 
         # Handle Message
         elif (requestType == MESSAGE or requestType == GROUPMESSAGE):
@@ -220,14 +280,23 @@ class BulletinBoard():
             if DEBUG:
                 print("GROUPJOIN request.")
             group = self.groups[int(request.groupID)]
+            groupID = int(request.groupID)
             if request.username not in group.users:
                 if DEBUG:
                     print("User not in group...")
                 group.addUser(request.username)
                 response = f"{request.username} added to group {request.groupID}.\n"
                 response += "Current users:\n"
+                addConn(request.groupID, conn)
                 for user in group.users:
                     response += user + "\n"
+                print("\nHERE WE GO!\n")
+                if (groupID == 0):
+                    print("\nGROUP 0 WAS CALLED!\n")
+                    broadcast(f"User {username} joined group {request.groupID}\n", conn)
+                elif (groupID == 1):
+                    print("\nGROUP 1 WAS CALLED!\n")
+                    broadcast_specific(f"User {request.username} joined group {groupID}\n", conn, group_1)
             else:
                 response = f"{request.username} already in group {request.groupID}."
 
@@ -286,7 +355,6 @@ class Server:
             ct.start()
             allThreads.append(ct)
             list_of_clients.append(client)
-            print("THREAD APPENDED!!!")
         
         for th in allThreads:
             th.join()
