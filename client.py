@@ -1,5 +1,6 @@
 import socket
 import sys
+import select
 from typing import Tuple
 
 # Constants
@@ -124,6 +125,7 @@ class Client:
 
 def mainMenu(client):
     while True:
+        read_sockets,write_socket, error_socket = select.select(sockets_list,[],[])
         selection = input("Enter one of the following commands:\n\t%exit\n\t%post [message subject]\n\t%users\n\t%leave\n\t%message [message ID]\n\t%groups\n\t%groupjoin [groupID]\n\t%grouppost [groupID] [message subject]\n\t%groupusers [groupID]\n\t%groupleave [groupID]\n\t%groupmessage [groupID] [messageID]\n")
         selection = parseSelection(selection)
 
