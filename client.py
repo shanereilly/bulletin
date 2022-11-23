@@ -1,6 +1,7 @@
 import socket
 import sys
 import select
+import threading
 from typing import Tuple
 
 # Constants
@@ -120,10 +121,13 @@ class Client:
             print("Request sent.")
 
     def handle_response(self, resp):
-        respStr = resp.decode()
-        print(respStr)
+        response = resp.decode()
+        sys.stdout.write(response)
+        sys.stdout.flush()
 
 def mainMenu(client):
+    recvThread = threading.Thread(target=recieveData, args = [client], daemon = True)
+    recvThread.start()
     while True:
         read_sockets,write_socket, error_socket = select.select(sockets_list,[],[])
         selection = input("Enter one of the following commands:\n\t%exit\n\t%post [message subject]\n\t%users\n\t%leave\n\t%message [message ID]\n\t%groups\n\t%groupjoin [groupID]\n\t%grouppost [groupID] [message subject]\n\t%groupusers [groupID]\n\t%groupleave [groupID]\n\t%groupmessage [groupID] [messageID]\n")
@@ -224,6 +228,11 @@ def verifyPort(port: str) -> bool:
         print("IP address is incorrect")
         return False
     return True
+
+def recieveData(client):
+    while True:
+        response = client.connection.recv(4096)
+        client.handle_response(response)
 
 def main():
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
