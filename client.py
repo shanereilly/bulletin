@@ -129,7 +129,6 @@ def mainMenu(client):
     recvThread = threading.Thread(target=recieveData, args = [client], daemon = True)
     recvThread.start()
     while True:
-        read_sockets,write_socket, error_socket = select.select(sockets_list,[],[])
         selection = input("Enter one of the following commands:\n\t%exit\n\t%post [message subject]\n\t%users\n\t%leave\n\t%message [message ID]\n\t%groups\n\t%groupjoin [groupID]\n\t%grouppost [groupID] [message subject]\n\t%groupusers [groupID]\n\t%groupleave [groupID]\n\t%groupmessage [groupID] [messageID]\n")
         selection = parseSelection(selection)
 
@@ -138,8 +137,6 @@ def mainMenu(client):
 
         if selection[0] != 0:
             client.makeRequest(selection)
-            response = client.connection.recv(4096)
-            client.handle_response(response)
 
 def parseSelection(selection: str) -> Tuple[int, str, str]:
     main_menu_commands = ["%exit", "%post", "%users", "%leave", "%message", "%groups", "%groupjoin", "%grouppost", "%groupusers", "%groupleave", "%groupmessage"]
