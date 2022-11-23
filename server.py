@@ -18,6 +18,8 @@ GROUPMESSAGE = 10
 DEFAULT_ADDRESS = "127.0.0.1"
 DEFAULT_PORT = 13001
 
+list_of_clients = []
+
 class Group:
     def __init__(self, groupID : int):
         self.groupID = groupID
@@ -53,6 +55,21 @@ class Request:
         if DEBUG:
             print("Request built.")
 
+
+# Attempt at broadcasting message
+def broadcast(message, connection):
+    message = bytes(message, 'utf-8')
+    for clients in list_of_clients:
+        if clients!=connection:
+            try:
+                print("trying to send message to : " + str(clients))
+                clients.send(message)
+            except:
+                print("failed to send message to : " + str(clients))
+                clients.close()
+
+
+
 class BulletinBoard():
     def __init__(self):
         self.groups = [Group(0), Group(1), Group(2), Group(3), Group(4), Group(5)]
@@ -76,7 +93,7 @@ class BulletinBoard():
         requestType = request[3]
         subject = request[4]
         body = ""
-        timestamp = str(time.time())
+        timestamp = str(time.asctime( time.localtime(time.time())))
         
         for i in range(5, len(request)):
             body += request[i] + '\n'
@@ -106,6 +123,7 @@ class BulletinBoard():
             print(f"Body: {self.currentRequest.body}")
             print(f"Timestamp: {self.currentRequest.timestamp}")
             print("======================")
+
 
     def handleRequest(self) -> str:
         if DEBUG:
@@ -160,6 +178,8 @@ class BulletinBoard():
             groupID = int(request.groupID)
             (self.groups[groupID]).removeUser(username)
             response = f"User {username} removed from group {groupID}"
+            #for th in allThreads:
+                #th.send(response)
 
         # Handle Message
         elif (requestType == MESSAGE or requestType == GROUPMESSAGE):
@@ -196,7 +216,10 @@ class BulletinBoard():
                 if DEBUG:
                     print("User not in group...")
                 group.addUser(request.username)
-                response = f"{request.username} added to group {request.groupID}."
+                response = f"{request.username} added to group {request.groupID}.\n"
+                response += "Current users:\n"
+                for user in group.users:
+                    response += user + "\n"
             else:
                 response = f"{request.username} already in group {request.groupID}."
 
@@ -213,6 +236,7 @@ class clientThread(threading.Thread):
         self.conn = conn
         if DEBUG:
             print("Client thread created.")
+        broadcast("\nHELLOWORLD!\n", self.conn)
 
     def run(self):
         size = 4096
@@ -254,9 +278,15 @@ class Server:
             ct = clientThread(address[0], address[1], client)  
             ct.start()
             allThreads.append(ct)
+            list_of_clients.append(client)
+            print("THREAD APPENDED!!!")
+            #for th in allThreads:
+                #print(str(th))
         
         for th in allThreads:
             th.join()
+
+
 
 s = Server(DEFAULT_ADDRESS, DEFAULT_PORT)
 s.listen()
