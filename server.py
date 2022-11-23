@@ -15,6 +15,7 @@ GROUPPOST = 7
 GROUPUSERS = 8
 GROUPLEAVE = 9
 GROUPMESSAGE = 10
+FIRSTMESSAGE = 11
 DEFAULT_ADDRESS = "127.0.0.1"
 DEFAULT_PORT = 13001
 
@@ -125,7 +126,7 @@ class BulletinBoard():
             print("======================")
 
 
-    def handleRequest(self) -> str:
+    def handleRequest(self, conn) -> str:
         if DEBUG:
             print("Handling request...")
         request = self.currentRequest
@@ -133,6 +134,13 @@ class BulletinBoard():
         requestType = int(request.requestType)
         if DEBUG:
             print(f"Request type: {requestType}")
+
+        # Handle first message
+        if (requestType == FIRSTMESSAGE):
+            if DEBUG:
+                print("First message. Identifying user...")
+            broadcast(f"{request.username} has joined the message board.", conn)
+            response = ""
 
         # Handle Error
         if (requestType == ERROR):
@@ -164,9 +172,11 @@ class BulletinBoard():
             group = self.groups[int(request.groupID)]
             if DEBUG:
                 print(f"Group: {group.groupID}")
-            for user in group.users:
-                response += user + "\n"
-            print(response)
+            if request.username not in group.users:
+                response = f"Cannot return users. User {request.username} not in group {group.groupID}."
+            else:
+                for user in group.users:
+                    response += user + "\n"
 
         # Handle Leave
         elif (requestType == LEAVE or requestType == GROUPLEAVE):
@@ -178,8 +188,6 @@ class BulletinBoard():
             groupID = int(request.groupID)
             (self.groups[groupID]).removeUser(username)
             response = f"User {username} removed from group {groupID}"
-            #for th in allThreads:
-                #th.send(response)
 
         # Handle Message
         elif (requestType == MESSAGE or requestType == GROUPMESSAGE):
@@ -236,7 +244,6 @@ class clientThread(threading.Thread):
         self.conn = conn
         if DEBUG:
             print("Client thread created.")
-        broadcast("\nHELLOWORLD!\n", self.conn)
 
     def run(self):
         size = 4096
@@ -250,7 +257,7 @@ class clientThread(threading.Thread):
                     print("Reading data...")
                     s.bboard.read_request(dataStr) 
                     print("Data read.")
-                    response = s.bboard.handleRequest()
+                    response = s.bboard.handleRequest(self.conn)
                     response = bytes(response, 'utf-8')
                     self.conn.send(response)
                     print("Response sent.")
@@ -280,8 +287,6 @@ class Server:
             allThreads.append(ct)
             list_of_clients.append(client)
             print("THREAD APPENDED!!!")
-            #for th in allThreads:
-                #print(str(th))
         
         for th in allThreads:
             th.join()

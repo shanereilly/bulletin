@@ -17,6 +17,7 @@ GROUPPOST = 7
 GROUPUSERS = 8
 GROUPLEAVE = 9
 GROUPMESSAGE = 10
+FIRSTMESSAGE = 11
 
 class Client:
     # Constructor
@@ -40,9 +41,12 @@ class Client:
         body = ""
 
         first = selection[0]
+
+        # Handle error
         if (first == ERROR):
             print("Error")
-            # Handle error
+        elif (first == FIRSTMESSAGE):
+            reqAct = FIRSTMESSAGE
         # Post
         elif (first == POST):
             reqAct = POST
@@ -128,6 +132,7 @@ class Client:
 def mainMenu(client):
     recvThread = threading.Thread(target=recieveData, args = [client], daemon = True)
     recvThread.start()
+    client.makeRequest((FIRSTMESSAGE, "", ""))
     while True:
         selection = input("Enter one of the following commands:\n\t%exit\n\t%post [message subject]\n\t%users\n\t%leave\n\t%message [message ID]\n\t%groups\n\t%groupjoin [groupID]\n\t%grouppost [groupID] [message subject]\n\t%groupusers [groupID]\n\t%groupleave [groupID]\n\t%groupmessage [groupID] [messageID]\n")
         selection = parseSelection(selection)
