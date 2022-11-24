@@ -19,7 +19,13 @@ FIRSTMESSAGE = 11
 DEFAULT_ADDRESS = "127.0.0.1"
 DEFAULT_PORT = 13001
 
+# Set up a global list of clients for the server to keep track of all the clients
 list_of_clients = []
+
+# Set up global lists for each group to store the client connection.
+# These client connection lists are then used to contact the clients of a particular
+# group when needed (i.e. a user sends a message which needs to notify all members
+# of group 1)
 group_0 = []
 group_1 = []
 group_2 = []
@@ -27,6 +33,10 @@ group_3 = []
 group_4 = []
 group_5 = []
 
+
+# Sets up a Group class to store the users in each group, the posts in that group, the groupID,
+# and the total postcount. The Group class allows for further modularization of the code
+# by allowing us to simply initialize a new instance of the Group class for each group.
 class Group:
     def __init__(self, groupID : int):
         self.groupID = groupID
@@ -34,22 +44,33 @@ class Group:
         self.posts = {}
         self.postcount = 0
 
+    # The remove user method removes the username from a group's user list
     def removeUser(self, username : str):
         if DEBUG:
             print(f"Removing user {username}")
         self.users.remove(username)
 
+    # The add user method adds a username to the group's user list
     def addUser(self, username : str):
         if DEBUG:
             print(f"Adding user {username}")
         self.users += [username]
 
+# A post is implmeneted as a class in this code. Essentially, this class allows
+# us to instantiate a post object with the necessary attributes of a post:
+# such as a Header (subject), Body, and the timestamp of when the post was made.
 class Post:
     def __init__(self, messageHeader : str, messageBody : str, timestamp):
         self.messageHeader = messageHeader
         self.messageBody = messageBody
         self.timestamp = timestamp
 
+# Similar to our implementation of a post, a request is modled using this Request class.
+# This class allows the generation of a request to be built with all its necessary features.
+# These features include: the username that is making the request (username), the group ID of
+# the request (groupID), the message ID of the request (msgID), the type of request being made
+# (requestType), the subject of the request if there is one (subject), the body of the request
+# if there is one (body), and lastly the time at which the request is being built (timestamp).
 class Request:
     def __init__(self, username: str, groupID: str, msgID: str, requestType: str, subject: str, body: str, timestamp):
         self.username = username
@@ -63,7 +84,11 @@ class Request:
             print("Request built.")
 
 
-# Attempt at broadcasting message
+# This broadcast function is a global function which broadcasts a message (message in input)
+# to all clients in the list of clients we defined earlier excluding the user that is making
+# the request (connection as input). This functon is called whenever a message needs to be
+# sent to every client in the client list. This ocurrs for group 0 (public messaging board)
+# posts because everyone belongs to the public messaging board when they connect to the server.
 def broadcast(message, connection):
     message = bytes(message, 'utf-8')
     for clients in list_of_clients:
@@ -75,10 +100,12 @@ def broadcast(message, connection):
                 print("failed to send message to : " + str(clients))
                 clients.close()
 
-# Attempt at broadcasting message
+
+# This second broadcast function is designed to broadcast a message but only to a specific group.
+# This function takes an extra input (group) as compared to the broadcast function above which
+# tells this function which clients to broadcast the message to.
 def broadcast_specific(message, connection, group):
     message = bytes(message, 'utf-8')
-    print("\nTRYING TO BROADCAST\n")
     for clients in group:
         if (clients!=connection):
             try:
@@ -88,9 +115,9 @@ def broadcast_specific(message, connection, group):
                 print("failed to send message to : " + str(clients))
                 clients.close()
 
-
+# Add connection function takes a groupID and a connection as input to add the connection to the
+# global group list of the given groupID. 
 def addConn(groupID, connection):
-    print(f"groupID passed in = {groupID}")
     if int(groupID) == 0:
         group_0.append(connection)
     elif int(groupID) == 1:
@@ -105,29 +132,35 @@ def addConn(groupID, connection):
         group_5.append(connection)
 
 
-def printGroup(group):
-    for connections in group:
-        print(str(connections))
-
-
+# We implemented the bulletin board as its own class which has the following attributes: A list of groups
+# to store each group (Group class object) in, a list of users to store the users on the bulletin board,
+# and a postcount to store the current post number in the bulletin board. We chose to implement the bulletin
+# board as class so that we could simply initialize a single bulletin board which holds all of the information
+# mentioned above and store that in a single BulletinBoard object variable. The Server class initializes this
+# single BulletinBoard object variable.
 class BulletinBoard():
     def __init__(self):
         self.groups = [Group(0), Group(1), Group(2), Group(3), Group(4), Group(5)]
         self.users = []
         self.postcount = 0
 
+    # Read request method of the BulletinBoard class takes a request string as input
+    # and parses it and builds it using the Request class commented on earlier. Also
+    # note that this method automatically adds every user to group 0 (public message board).
     def read_request(self, request: str):
 
         if DEBUG:
             print("Parsing request")
 
+        # Setting request and username variables (string operations)
         request = request.split("\n")
         username = request[0]
 
-        ## All users are automatically in group 0
+        ## All users are automatically added to group 0
         if username not in self.groups[0].users:
             self.groups[0].addUser(username)
 
+        # Setting request varibales to pass into Request class below
         groupID = request[1]
         msgID = request[2]
         requestType = request[3]
@@ -150,6 +183,8 @@ class BulletinBoard():
             print(f"Timestamp: {timestamp}")
             print("======================")
 
+        # Creating an object of the class Request and setting a new variable self.currentRequest equal to
+        # the new object. This creates/builds the request object and stores it in a variable.
         self.currentRequest = Request(username, groupID, msgID, requestType, subject, body, timestamp)
 
         if DEBUG:
@@ -194,12 +229,24 @@ class BulletinBoard():
             elif (DEBUG and requestType == GROUPPOST):
                 print("GROUPPOST request.")
             group = self.groups[int(request.groupID)]
+            groupID = int(request.groupID)
             if request.username not in group.users:
-                response = f"Cannot post. {request.username} is not in group {request.groupID}"
+                response = f"Cannot post. {request.username} is not in group {request.groupID}\n"
             else:
                 group.posts[group.postcount] = Post(request.subject, request.body, str(request.timestamp))
                 response = f"Post successful. Post ID: {group.postcount}.\n"
-                broadcast(f"MSG ID: {group.postcount}, SENDER: {request.username}. POST DATE: {group.posts[group.postcount].timestamp}, SUBJECT: {group.posts[group.postcount].messageHeader}\n", conn)
+                if (groupID == 0):
+                    broadcast(f"MSG ID: {group.postcount}, SENDER: {request.username}. POST DATE: {group.posts[group.postcount].timestamp}, SUBJECT: {group.posts[group.postcount].messageHeader}\n", conn)
+                elif (groupID == 1):
+                    broadcast_specific(f"MSG ID: {group.postcount}, SENDER: {request.username}. POST DATE: {group.posts[group.postcount].timestamp}, SUBJECT: {request.subject}, GROUP: {groupID}\n", conn, group_1)
+                elif (groupID == 2):
+                    broadcast_specific(f"MSG ID: {group.postcount}, SENDER: {request.username}. POST DATE: {group.posts[group.postcount].timestamp}, SUBJECT: {request.subject}, GROUP: {groupID}\n", conn, group_2)
+                elif (groupID == 3):
+                    broadcast_specific(f"MSG ID: {group.postcount}, SENDER: {request.username}. POST DATE: {group.posts[group.postcount].timestamp}, SUBJECT: {request.subject}, GROUP: {groupID}\n", conn, group_3)
+                elif (groupID == 4):
+                    broadcast_specific(f"MSG ID: {group.postcount}, SENDER: {request.username}. POST DATE: {group.posts[group.postcount].timestamp}, SUBJECT: {request.subject}, GROUP: {groupID}\n", conn, group_4)
+                elif (groupID == 5):
+                    broadcast_specific(f"MSG ID: {group.postcount}, SENDER: {request.username}. POST DATE: {group.posts[group.postcount].timestamp}, SUBJECT: {request.subject}, GROUP: {groupID}\n", conn, group_5)
                 group.postcount += 1
                 
 
@@ -214,7 +261,7 @@ class BulletinBoard():
             if DEBUG:
                 print(f"Group: {group.groupID}")
             if request.username not in group.users:
-                response = f"Cannot return users. User {request.username} not in group {group.groupID}."
+                response = f"Cannot return users. User {request.username} not in group {group.groupID}.\n"
             else:
                 for user in group.users:
                     response += user + "\n"
@@ -257,7 +304,7 @@ class BulletinBoard():
                 print("GROUPMESSAGE request.")
             group = self.groups[int(request.groupID)]
             if request.username not in group.users:
-                response = f"Cannot view post. {request.username} not in group {request.groupID}"
+                response = f"Cannot view post. {request.username} not in group {request.groupID}\n"
             elif int(request.msgID) in group.posts.keys():
                 post = group.posts[int(request.msgID)]
                 if DEBUG:
