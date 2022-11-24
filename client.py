@@ -85,7 +85,8 @@ class Client:
         elif (first == GROUPPOST):
             reqAct = GROUPPOST
             groupID = int(selection[1])
-            subject = selection[1]
+            subject = str(selection[2]).strip("[]")
+            subject = subject.strip("\'")
             print("Please enter your message body. Enter 'q' alone when finished:")
             body = ""
             bodyLine = ""
@@ -239,7 +240,7 @@ def recieveData(client):
 def main():
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     address, port = initialMenu()
-    username = input("Enter your username: ")
+    username = input("Enter a nonexistent username: ")
     try:
         sock.connect((address, port))
     except socket.error:
