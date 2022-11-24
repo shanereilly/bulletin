@@ -1,3 +1,7 @@
+Shane Reilly, Daniel Chandler, Justin Turnau
+
+Equal contribution
+
 How to compile/run this code:
 
 Both the client and the server are written in python .py files. As these are both Python files, compiling/running them follows the normal steps as for any Python (.py) files. All one needs to do in order to run this code is to first run the server.py file in a terminal, then run the client.py files in another terminal. As an addition note, this code was tested using Python version 3.6.9. It has not been tested on previous Python versions. In order to ensure that it runs smoothly, please run this code using Python version 3.6.9 or later.
