@@ -4,7 +4,7 @@ import select
 import threading
 from typing import Tuple
 
-# Constants
+# Setting Constants
 DEBUG = True
 ERROR = 0
 POST = 1
@@ -19,6 +19,17 @@ GROUPLEAVE = 9
 GROUPMESSAGE = 10
 FIRSTMESSAGE = 11
 
+
+# Clients are modled using a client class called Client. When a new client connection is created
+# (a new client object is instantiated) a client is assigned its socket connection value and username.
+# The client class has a method which creates bulletin board requests called createBulletinRequest.
+# This method takes a list of variables to create a request from the client to eventually send to the
+# server (bulletin board). This class also contains a make request method to prepare the variables that
+# are to be sent to the createBulletinRequest method. The process of making a request follows this path:
+# The client code reads the input from a user, parses it, then sends it to the makeRequest method. There,
+# the request variables are put together from the parsed user input. Lastly the makeRequest method passes
+# the variables into the createBulletinRequest function which generates and returns the request. From there
+# the makeRequest function actually sends the request to the server using the client connection.
 class Client:
     # Constructor
     def __init__(self, connection, username: str):
@@ -113,6 +124,7 @@ class Client:
         if DEBUG:
             print("Building request...")
 
+        # Pass variables into createBulletinRequest to generate request message
         request = self.createBulletinRequest(groupID, msgID, reqAct, subject, body)
         request = bytes(request, 'utf-8')
 
@@ -120,16 +132,21 @@ class Client:
             print("Request built:")
             print(request)
 
+        # Send request message to the server
         self.connection.send(request)
 
         if DEBUG:
             print("Request sent.")
 
+    # method that handles the server response to the client
+    # simply writes the response from the server
     def handle_response(self, resp):
         response = resp.decode()
         sys.stdout.write(response)
         sys.stdout.flush()
 
+# Main menu function takes a client as an argument and sets up the main loop waiting for user (client) input.
+# Sends user input to be parsed after user successfully inputs.
 def mainMenu(client):
     recvThread = threading.Thread(target=recieveData, args = [client], daemon = True)
     recvThread.start()
@@ -144,6 +161,8 @@ def mainMenu(client):
         if selection[0] != 0:
             client.makeRequest(selection)
 
+# Function to parse the user input so that a request can be made to the server properly.
+# Made up of a block of if/else statements to understand/interpret commands given as input.
 def parseSelection(selection: str) -> Tuple[int, str, str]:
     main_menu_commands = ["%exit", "%post", "%users", "%leave", "%message", "%groups", "%groupjoin", "%grouppost", "%groupusers", "%groupleave", "%groupmessage"]
     error = (ERROR,"","")
@@ -203,6 +222,7 @@ def parseSelection(selection: str) -> Tuple[int, str, str]:
         else:
             return (GROUPMESSAGE, command[1], command[2])
 
+# Function to handle the initial menu given before a connection the server is made.
 def initialMenu() -> Tuple[str,int]:
     response = input("Enter one of the following commands:\n\t%connect [address] [port]\n\t%exit\n")
     command = response.split()
@@ -214,6 +234,7 @@ def initialMenu() -> Tuple[str,int]:
         print("Invalid command")
         return initialMenu()
 
+# Function to verify the IP address
 def verifyAddress(address: str) -> bool:
     nums = address.split('.')
     if len(nums) != 4:
@@ -225,6 +246,7 @@ def verifyAddress(address: str) -> bool:
             return False
     return True
 
+# Function to verify the port given
 def verifyPort(port: str) -> bool:
     num = int(port)
     if num > 0xFFFF:
@@ -232,11 +254,15 @@ def verifyPort(port: str) -> bool:
         return False
     return True
 
+# Fucntion to receive data from the server.
+# sends response to the handle response function
 def recieveData(client):
     while True:
         response = client.connection.recv(4096)
         client.handle_response(response)
 
+# Main function / Driver code
+# Calls the initial menu and attempts to establish a client connection to the server.
 def main():
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     address, port = initialMenu()
