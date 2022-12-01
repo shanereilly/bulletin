@@ -247,17 +247,17 @@ class BulletinBoard():
                 group.posts[group.postcount] = Post(request.subject, request.body, str(request.timestamp))
                 response = f"Post successful. Post ID: {group.postcount}.\n"
                 if (groupID == 0):
-                    broadcast_specific(f"MSG ID: {group.postcount}, SENDER: {request.username}. POST DATE: {group.posts[group.postcount].timestamp}, SUBJECT: {group.posts[group.postcount].messageHeader}\n", conn, group_0)
+                    broadcast(f"MSG ID: {group.postcount}, SENDER: {request.username}. POST DATE: {group.posts[group.postcount].timestamp}, SUBJECT: {group.posts[group.postcount].messageHeader}\nPOST: {group.posts[group.postcount].messageBody}\n", conn)
                 elif (groupID == 1):
-                    broadcast_specific(f"MSG ID: {group.postcount}, SENDER: {request.username}. POST DATE: {group.posts[group.postcount].timestamp}, SUBJECT: {request.subject}, GROUP: {groupID}\n", conn, group_1)
+                    broadcast_specific(f"MSG ID: {group.postcount}, SENDER: {request.username}. POST DATE: {group.posts[group.postcount].timestamp}, SUBJECT: {request.subject}, GROUP: {groupID}\nPOST: {group.posts[group.postcount].messageBody}\n", conn, group_1)
                 elif (groupID == 2):
-                    broadcast_specific(f"MSG ID: {group.postcount}, SENDER: {request.username}. POST DATE: {group.posts[group.postcount].timestamp}, SUBJECT: {request.subject}, GROUP: {groupID}\n", conn, group_2)
+                    broadcast_specific(f"MSG ID: {group.postcount}, SENDER: {request.username}. POST DATE: {group.posts[group.postcount].timestamp}, SUBJECT: {request.subject}, GROUP: {groupID}\nPOST: {group.posts[group.postcount].messageBody}\n", conn, group_2)
                 elif (groupID == 3):
-                    broadcast_specific(f"MSG ID: {group.postcount}, SENDER: {request.username}. POST DATE: {group.posts[group.postcount].timestamp}, SUBJECT: {request.subject}, GROUP: {groupID}\n", conn, group_3)
+                    broadcast_specific(f"MSG ID: {group.postcount}, SENDER: {request.username}. POST DATE: {group.posts[group.postcount].timestamp}, SUBJECT: {request.subject}, GROUP: {groupID}\nPOST: {group.posts[group.postcount].messageBody}\n", conn, group_3)
                 elif (groupID == 4):
-                    broadcast_specific(f"MSG ID: {group.postcount}, SENDER: {request.username}. POST DATE: {group.posts[group.postcount].timestamp}, SUBJECT: {request.subject}, GROUP: {groupID}\n", conn, group_4)
+                    broadcast_specific(f"MSG ID: {group.postcount}, SENDER: {request.username}. POST DATE: {group.posts[group.postcount].timestamp}, SUBJECT: {request.subject}, GROUP: {groupID}\nPOST: {group.posts[group.postcount].messageBody}\n", conn, group_4)
                 elif (groupID == 5):
-                    broadcast_specific(f"MSG ID: {group.postcount}, SENDER: {request.username}. POST DATE: {group.posts[group.postcount].timestamp}, SUBJECT: {request.subject}, GROUP: {groupID}\n", conn, group_5)
+                    broadcast_specific(f"MSG ID: {group.postcount}, SENDER: {request.username}. POST DATE: {group.posts[group.postcount].timestamp}, SUBJECT: {request.subject}, GROUP: {groupID}\nPOST: {group.posts[group.postcount].messageBody}\n", conn, group_5)
                 group.postcount += 1
                 
 

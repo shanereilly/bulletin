@@ -5,7 +5,7 @@ import threading
 from typing import Tuple
 
 # Setting Constants
-DEBUG = True
+DEBUG = False
 ERROR = 0
 POST = 1
 USERS = 2
