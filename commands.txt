@@ -1,0 +1,69 @@
+PART 1
+-----------------------
+CLIENT A
+%connect 127.0.0.1 13001
+a
+
+CLIENT B
+%connect 127.0.0.1 13001
+b
+
+CLIENT C
+%connect 127.0.0.1 13001
+c
+%post testmessage
+this is a test
+q
+%exit
+
+CLIENT B
+%exit
+
+CLIENT A
+%exit
+
+
+PART 2
+--------------------------
+CLIENT A
+%connect 127.0.0.1 13001
+a
+%groupjoin 1
+
+CLIENT B
+%connect 127.0.0.1 13001
+b
+%groupjoin 2
+
+CLIENT C
+%connect 127.0.0.1 13001
+c
+%groupjoin 2
+
+CLIENT A
+%grouppost 1 test
+this is a test
+q
+
+CLIENT B
+%grouppost 2 test2
+this is another test
+q
+%groupjoin 3
+%grouppost 3 test3
+this is a third test
+q
+%groupleave 3
+%groupleave 2
+%exit
+
+CLIENT C
+%groupleave 2
+%exit
+
+CLIENT A
+%groupleave 1
+%exit
+
+
+
